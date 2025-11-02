@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>UTF-16 ↔ Hexadecimal 変換ツール</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input[type="text"], textarea {
+      width: 100%; padding: 10px; margin-bottom: 5px; font-family: monospace;
+    }
+    button { margin-right: 10px; padding: 5px 10px; }
+    .button-group { margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+
+<h2>🔁 UTF-16 ⇄ Hexadecimal 変換ツール</h2>
+
+<!-- UTF-16テキスト入力 -->
+<label>UTF-16 テキスト</label>
+<input type="text" id="utfText" oninput="utfToHex()" placeholder="例: 123">
+<div class="button-group">
+  <button onclick="copyText('utfText')">📋 コピー</button>
+  <button onclick="pasteText('utfText')">📥 ペースト</button>
+</div>
+
+<!-- Hexadecimal 表示 -->
+<label>Hexadecimal (例: 003100320033)</label>
+<input type="text" id="hexText" oninput="hexToUtf()" placeholder="例: 003100320033">
+<div class="button-group">
+  <button onclick="copyText('hexText')">📋 コピー</button>
+  <button onclick="pasteText('hexText')">📥 ペースト</button>
+</div>
+
+<script>
+// UTF-16 → Hex
+function utfToHex() {
+  const text = document.getElementById("utfText").value;
+  const hex = Array.from(text).map(char =>
+    char.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')
+  ).join('');
+  document.getElementById("hexText").value = hex;
+}
+
+// Hex → UTF-16
+function hexToUtf() {
+  const hex = document.getElementById("hexText").value.replace(/\s+/g, '');
+  const chars = hex.match(/.{1,4}/g) || [];
+  const text = chars.map(h => String.fromCharCode(parseInt(h, 16))).join('');
+  document.getElementById("utfText").value = text;
+}
+
+// コピー
+function copyText(id) {
+  const el = document.getElementById(id);
+  el.select();
+  document.execCommand("copy");
+}
+
+// ペースト
+function pasteText(id) {
+  navigator.clipboard.readText().then(text => {
+    document.getElementById(id).value = text;
+    if (id === "utfText") utfToHex();
+    else if (id === "hexText") hexToUtf();
+  });
+}
+</script>
+
+</body>
+</html>

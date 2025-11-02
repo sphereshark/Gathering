@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>GCTU Code Viewer</title>
+  <style>
+    body {
+      background-color: #fffafc;
+      font-family: 'Segoe UI', 'Yu Gothic', sans-serif;
+      color: #333;
+      padding: 40px;
+    }
+
+    h2 {
+      color: #d26c9c;
+      font-weight: normal;
+    }
+
+    form {
+      background-color: #fff0f5;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      max-width: 700px;
+    }
+
+    .drop-zone {
+      border: 2px dashed #f8a0c9;
+      border-radius: 12px;
+      padding: 30px;
+      text-align: center;
+      color: #a64d79;
+      font-size: 16px;
+      background-color: #fff8fb;
+      margin-bottom: 20px;
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+
+    .drop-zone.dragover {
+      background-color: #ffe6f0;
+      border-color: #e87bb2;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    label {
+      display: inline-block;
+      background-color: #f8a0c9;
+      color: white;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 300px;
+      padding: 15px;
+      background-color: #fffafd;
+      color: #7a4e74;
+      border: 2px solid #f8a0c9;
+      border-radius: 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre;
+      resize: vertical;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+  </style>
+</head>
+<body>
+  <form>
+    <h2> GCTUファイルをドロップ or 選択 </h2>
+    <div class="drop-zone" id="dropZone">
+      ここに .gctu ファイルをドラッグ＆ドロップ<br>
+      または<br>
+      <label for="fileInput">ファイルを選択</label>
+      <input type="file" id="fileInput" accept=".gctu">
+    </div><textarea id="hexOutput" readonly placeholder="ここにコードが表示されます..."></textarea>
+    <button type="button" id="copyBtn" style="margin-top: 10px; background-color: #d26c9c; color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: bold; cursor: pointer;">コピー</button>
+    
+  </form>
+
+  <script>
+    const dropZone = document.getElementById("dropZone");
+    const fileInput = document.getElementById("fileInput");
+    const hexOutput = document.getElementById("hexOutput");
+
+    function handleFile(file) {
+      if (!file || !file.name.endsWith(".gctu")) {
+        alert("gctuファイルを選んでください！");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function () {
+        const buffer = new Uint8Array(reader.result);
+        let rawHex = "";
+        buffer.forEach(byte => {
+          rawHex += byte.toString(16).padStart(2, '0').toUpperCase();
+        });
+
+        let formatted = "";
+        for (let i = 0; i < rawHex.length; i += 16) {
+          const part1 = rawHex.slice(i, i + 8);
+          const part2 = rawHex.slice(i + 8, i + 16);
+          formatted += part2 ? `${part1} ${part2}\n` : `${part1}\n`;
+        }
+
+        hexOutput.value = formatted.trim();
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // ファイル選択
+    fileInput.addEventListener("change", () => {
+      handleFile(fileInput.files[0]);
+    });
+
+    // ドラッグ＆ドロップイベント
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("dragover");
+    });
+
+    dropZone.addEventListener("dragleave", () => {
+      dropZone.classList.remove("dragover");
+    });
+
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("dragover");
+      if (e.dataTransfer.files.length > 0) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+    document.getElementById("copyBtn").addEventListener("click", () => {
+      hexOutput.select();
+      document.execCommand("copy");
+    });
+
+  </script>
+</body>
+</html>

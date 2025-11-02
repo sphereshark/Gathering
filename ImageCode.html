@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>🌸 PNG ⇄ HEX 変換ツール 🌸</title>
+  <style>
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #fff0f5, #f0f8ff);
+      color: #333;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-size: 2em;
+      color: #d63384;
+      margin-bottom: 1rem;
+    }
+
+    .drop-zone {
+      border: 2px dashed #d63384;
+      border-radius: 12px;
+      padding: 1rem;
+      margin: 1rem auto;
+      background-color: #fff;
+      color: #666;
+      width: 90%;
+      max-width: 500px;
+      transition: border-color 0.3s;
+      box-shadow: 0 0 10px rgba(214, 51, 132, 0.1);
+    }
+
+    .drop-zone:hover {
+      border-color: #ff69b4;
+    }
+
+    textarea {
+      width: 90%;
+      max-width: 700px;
+      height: 250px;
+      font-family: monospace;
+      font-size: 14px;
+      padding: 10px;
+      margin-top: 1rem;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      box-shadow: 0 0 5px rgba(214, 51, 132, 0.1);
+    }
+
+    button {
+      background-color: #ff69b4;
+      color: white;
+      border: none;
+      padding: 0.6rem 1.4rem;
+      margin: 1rem;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(255, 105, 180, 0.2);
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #ff85c1;
+    }
+
+    img {
+      max-width: 320px;
+      margin-top: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    input[type="file"] {
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1> PNG ⇄ HEX 変換ツール </h1>
+
+  <div class="drop-zone" id="dropZone">
+    PNGファイルをドロップ、または<input type="file" id="fileInput" accept=".png">
+  </div>
+
+  <textarea id="hexArea" placeholder="ここにHEXデータが表示されます（または貼り付け）"></textarea>
+  <br>
+  <button onclick="hexToImage()">HEXから画像を復元</button>
+  <img id="resultImage" alt="画像表示" />
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('dropZone');
+    const hexArea = document.getElementById('hexArea');
+    const resultImage = document.getElementById('resultImage');
+
+    fileInput.addEventListener('change', handleFile);
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#ff85c1';
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.style.borderColor = '#d63384';
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '#d63384';
+      const file = e.dataTransfer.files[0];
+      if (file) {
+        fileInput.files = e.dataTransfer.files;
+        handleFile({ target: { files: [file] } });
+      }
+    });
+
+    function handleFile(event) {
+      const file = event.target.files[0];
+      if (!file || file.type !== "image/png") {
+        alert("PNGファイルを選択してください。");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const arrayBuffer = e.target.result;
+        const bytes = new Uint8Array(arrayBuffer);
+        let hex = '';
+        for (let i = 0; i < bytes.length; i++) {
+          hex += bytes[i].toString(16).padStart(2, '0');
+        }
+
+        // 整形：8桁ごとに空白＋改行
+        let formatted = '';
+        for (let i = 0; i < hex.length; i += 16) {
+          formatted += hex.substr(i, 8) + ' ' + hex.substr(i + 8, 8) + '\n';
+        }
+
+        hexArea.value = formatted.trim();
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function hexToImage() {
+      const hex = hexArea.value.replace(/\s+/g, '');
+      const bytes = [];
+
+      for (let i = 0; i < hex.length; i += 2) {
+        bytes.push(parseInt(hex.substr(i, 2), 16));
+      }
+
+      const uint8Array = new Uint8Array(bytes);
+      const blob = new Blob([uint8Array], { type: 'image/png' });
+      const url = URL.createObjectURL(blob);
+
+      resultImage.src = url;
+    }
+  </script>
+</body>
+</html>
