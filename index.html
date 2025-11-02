@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>sub main form</title>
+
+<style>
+  body {
+    font-family: sans-serif;
+    background: #f8f8f8;
+    color: #333;
+    text-align: center;
+    margin: 0;
+    padding: 2em;
+  }
+
+  .container {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  button {
+    background: #3498db;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    margin: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+
+  button:hover {
+    background: #2980b9;
+  }
+
+  button:active {
+    transform: scale(0.97);
+  }
+
+  .back {
+    background: #95a5a6;
+  }
+
+  .back:hover {
+    background: #7f8c8d;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>スキン変換<br>
+  <button onclick="window.open('skineditor/PNGEdit64.html', '_blank')">64x64限定</button>
+  <button onclick="window.open('skineditor/PNGEdit_Ms.html', '_blank')">64x64以上</button>
+  </h1>
+  <h1>ANIM作成,Json変換 + CSM追加<br>
+  <button onclick="window.open('skintx/ANIM.html', '_blank')">ANIM</button>
+  <button onclick="window.open('skintx/JSM.html', '_blank')">CSM→txt</button>
+  </h1>
+  <h1>Gctuの中身抜き取る<br>
+  <button onclick="window.open('gctsteal.html', '_blank')">GCTU</button>
+  </h1>
+  <h1>写真をコード化<br>
+  <button onclick="window.open('ImageCode.html', '_blank')">Image</button>
+  </h1>
+  <h1>コード関連<br>
+  <button onclick="window.open('Code/AllCafe.html', '_blank')">Cafe系</button>
+  <button onclick="window.open('Code/Binary&AsmConv.html', '_blank')">ASM,Hex変換</button>
+  <button onclick="window.open('Code/TwoEight.html', '_blank')">コードの右側だけ出力</button>
+  <button onclick="window.open('Code/kernelwrite.html', '_blank')">カーネルをkerに</button>
+  </h1>
+</div>
+
+</body>
+</html>
