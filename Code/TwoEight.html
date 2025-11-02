@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>コード変換ツール</title>
+  <style>
+    textarea {
+      width: 400px;
+      height: 100px;
+      margin-bottom: 10px;
+    }
+    button {
+      margin: 5px;
+      padding: 5px 10px;
+    }
+  </style>
+</head>
+<body>
+  <h3>変換元</h3>
+  <textarea id="textbox1" placeholder="ここにコードを貼り付け"></textarea><br>
+  <button onclick="pasteAndConvert()">貼り付ける</button>
+
+  <h3>変換後</h3>
+  <textarea id="textbox2" placeholder="変換結果がここに表示されます"></textarea><br>
+  <button onclick="copyToClipboard()">コピーする</button>
+
+  <script>
+    async function pasteAndConvert() {
+      try {
+        const text = await navigator.clipboard.readText();
+        document.getElementById("textbox1").value = text;
+        convert();
+      } catch (err) {
+        alert("クリップボードの読み取りに失敗しました: " + err);
+      }
+    }
+
+    function convert() {
+      const input = document.getElementById("textbox1").value;
+      const lines = input.split(/\r?\n/);
+      let result = "";
+
+      for (let line of lines) {
+        const parts = line.trim().split(" ");
+        if (parts.length > 1) {
+          result += parts[1];
+        }
+      }
+
+      document.getElementById("textbox2").value = result;
+    }
+
+    function copyToClipboard() {
+      const textbox2 = document.getElementById("textbox2");
+      textbox2.select();
+      document.execCommand("copy");
+      alert("コピーしました！");
+    }
+  </script>
+</body>
+</html>

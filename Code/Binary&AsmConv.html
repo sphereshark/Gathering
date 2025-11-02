@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>コード変換ツール</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #fef6ff;
+      color: #333;
+      padding: 20px;
+    }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      max-width: 1200px;
+      margin: auto;
+    }
+    .section {
+      background: #fff0f5;
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      flex: 1 1 400px;
+    }
+    textarea, input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-family: monospace;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 10px;
+      margin-right: 10px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 10px;
+      background-color: #ffaadd;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #ee99cc;
+    }
+    h2 {
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <!-- セクション1：書き込み短縮コード -->
+    <div class="section">
+      <h2>文字列書き込み短縮コード</h2>
+      <label for="prefix">アドレス設定</label>
+      <input type="text" id="prefix" maxlength="8" oninput="this.value = this.value.replace(/[^0-9a-fA-F]/g, '').slice(0, 8);">
+
+      <label for="textbox1">変換元コード：</label>
+      <textarea id="textbox1" placeholder="ここにコードをペーストしてね"></textarea>
+      <button onclick="pasteToTextbox1()">📋 ペースト</button>
+      <button onclick="convertCode()">➡️ 変換</button>
+
+      <label for="textbox2">変換後コード：</label>
+      <textarea id="textbox2" readonly></textarea>
+      <button onclick="copyTextbox2()">📄 コピー</button>
+    </div>
+
+    <!-- セクション2：UTF-16 ⇄ Hex -->
+    <div class="section">
+      <h2>UTF-16 ⇄ Hexadecimal</h2>
+
+      <label for="utfText">UTF-16</label>
+      <input type="text" id="utfText" oninput="utfToHex()" placeholder="">
+      <button onclick="copyText('utfText')">📋 コピー</button>
+      <button onclick="pasteText('utfText')">📥 ペースト</button>
+
+      <label for="hexText">Hexadecimal</label>
+      <input type="text" id="hexText" oninput="hexToUtf()" placeholder="">
+      <button onclick="copyText('hexText')">📋 コピー</button>
+      <button onclick="pasteText('hexText')">📥 ペースト</button>
+    </div>
+
+    <!-- セクション3：C#風16進数整形 -->
+    <div class="section">
+      <h2>Assembly</h2>
+
+      <label for="clipboardInput">変換元データ</label>
+      <textarea id="clipboardInput" placeholder="C0000000がついてないアセンブリを貼ってね"></textarea>
+      <button onclick="pasteToClipboardInput()">📋 ペースト</button>
+      <button onclick="convertClipboardStyle()">➡️ 変換</button>
+
+      <label for="clipboardOutput">変換後データ</label>
+      <textarea id="clipboardOutput" readonly></textarea>
+      <button onclick="copyClipboardOutput()">📄 コピー</button>
+    </div>
+  </div>
+
+  <script>
+    // セクション1：短縮コード変換
+    function pasteToTextbox1() {
+      navigator.clipboard.readText().then(text => {
+        document.getElementById("textbox1").value = text;
+      });
+    }
+
+    function copyTextbox2() {
+      const text = document.getElementById("textbox2").value;
+      navigator.clipboard.writeText(text);
+    }
+
+    function convertCode() {
+      const textbox1 = document.getElementById("textbox1").value;
+      const prefixInput = document.getElementById("prefix").value.padEnd(8, '0').toUpperCase();
+      let hex = textbox1.replace(/\s+/g, "").toUpperCase();
+
+      const lines = [];
+      for (let i = 0; i < hex.length; i += 16) {
+        lines.push(hex.substr(i, 16).padEnd(16, '0'));
+      }
+
+      const dataLength = hex.length / 2;
+      const lengthHex = dataLength.toString(16).padStart(4, '0').toUpperCase();
+
+      lines.unshift(`0102${lengthHex}${prefixInput}`);
+      lines.push("00000000000000FF");
+
+      const output = lines.map(line => line.length > 8 ? `${line.substr(0, 8)} ${line.substr(8, 8)}` : line).join("\n");
+      document.getElementById("textbox2").value = output;
+    }
+
+    // セクション2：UTF-16とHex相互変換
+    function utfToHex() {
+      const text = document.getElementById("utfText").value;
+      const hex = Array.from(text).map(char =>
+        char.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')
+      ).join('');
+      document.getElementById("hexText").value = hex;
+    }
+
+    function hexToUtf() {
+      const hex = document.getElementById("hexText").value.replace(/\s+/g, '');
+      const chars = hex.match(/.{1,4}/g) || [];
+      const text = chars.map(h => String.fromCharCode(parseInt(h, 16))).join('');
+      document.getElementById("utfText").value = text;
+    }
+
+    function copyText(id) {
+      const el = document.getElementById(id);
+      el.select();
+      document.execCommand("copy");
+    }
+
+    function pasteText(id) {
+      navigator.clipboard.readText().then(text => {
+        document.getElementById(id).value = text;
+        if (id === "utfText") utfToHex();
+        else if (id === "hexText") hexToUtf();
+      });
+    }
+
+    // セクション3：C#風16進数整形
+    function pasteToClipboardInput() {
+      navigator.clipboard.readText().then(text => {
+        document.getElementById("clipboardInput").value = text;
+      });
+    }
+
+    function copyClipboardOutput() {
+      const text = document.getElementById("clipboardOutput").value;
+      navigator.clipboard.writeText(text).then(() => {
+        alert("コピーしました！");
+      });
+    }
+
+    function convertClipboardStyle() {
+      let text = document.getElementById("clipboardInput").value.replace(/\r?\n/g, "").replace(/ /g, "").toUpperCase();
+
+      if (!text) return;
+
+      const headerVal = (0xC0000000 + text.length / 16) >>> 0;
+      let result = headerVal.toString(16).toUpperCase().padStart(8, '0') + "60000000" + text;
+
+      for (let i = result.length; i > 0; i--) {
+        if (i % 16 === 0) {
+          result = result.slice(0, i) + "\r\n" + result.slice(i);
+        } else if (i % 16 === 8) {
+          result = result.slice(0, i) + " " + result.slice(i);
+        }
+      }
+
+      result = result.trim();
+      document.getElementById("clipboardOutput").value = result;
+    }
+  </script>
+</body>
+</html>
