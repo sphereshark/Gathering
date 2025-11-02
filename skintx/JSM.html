@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Skin[CSM]追加ファイル</title>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <style>
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: #fff0f5;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h2 {
+      color: #d36fa3;
+      margin-bottom: 10px;
+    }
+
+    .tabs {
+      display: flex;
+      margin-bottom: 15px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      background: #ffe0ec;
+      border: 2px solid #f7a8c4;
+      border-radius: 10px 10px 0 0;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+
+    .tab:hover {
+      background: #ffcce0;
+    }
+
+    .tab.active {
+      background: #fff;
+      border-bottom: 2px solid #fff;
+    }
+
+    .tab-content {
+      display: none;
+      background: #fff;
+      border: 2px solid #f7a8c4;
+      border-top: none;
+      padding: 15px;
+      border-radius: 0 0 10px 10px;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    input[type="file"], select, input[type="text"], textarea, button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    button {
+      background-color: #f7a8c4;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background-color: #e6739f;
+    }
+
+    .input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .readonly-prefix {
+      color: #999;
+    }
+
+    pre {
+      background: #fff8fa;
+      padding: 10px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      border: 1px solid #f2c2d1;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('jsonTab')">JSON変換</div>
+    <div class="tab" onclick="switchTab('csmTab')">CSMスキン追加</div>
+  </div>
+
+  <!-- JSONタブ -->
+  <div id="jsonTab" class="tab-content active">
+    <h2>JSONファイルを読み込んで変換</h2>
+    <label for="partSelect">部位を選択:</label>
+    <select id="partSelect">
+      <option value="HEAD">HEAD</option>
+      <option value="BODY">BODY</option>
+      <option value="ARM0">ARM0</option>
+      <option value="ARM1">ARM1</option>
+      <option value="LEG0">LEG0</option>
+      <option value="LEG1">LEG1</option>
+    </select>
+    <input type="file" id="jsonFileInput" accept=".json">
+    <button id="copyButton">コピー</button>
+    <pre id="output">ここに結果が表示されます</pre>
+  </div>
+
+  <!-- CSMタブ -->
+  <div id="csmTab" class="tab-content">
+    <h2>CSM付きUVスキンにCSMを追加</h2>
+    <input type="file" id="fileInput" accept=".png">
+
+    <div class="input-wrapper">
+      <span class="readonly-prefix">スキンの名前</span>
+      <input type="text" id="textbox1">
+    </div>
+
+    <div class="input-wrapper">
+      <span class="readonly-prefix">スキンのID</span>
+      <input type="text" id="textbox6">
+    </div>
+
+    <div class="input-wrapper">
+      <textarea id="textbox3" placeholder="隣でJson変換した結果を貼り付けてね。"></textarea>
+      <button onclick="pasteClipboard('textbox3')">ペースト</button>
+    </div>
+
+    <button onclick="generateZip()">完了</button>
+  </div>
+
+  <script>
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      document.querySelector(`[onclick="switchTab('${tabId}')"]`).classList.add('active');
+    }
+
+    // JSON変換スクリプト
+    let currentJson = null;
+    let currentOutput = "";
+
+    function convertJsonToText(json, part) {
+      const bones = json["minecraft:geometry"]?.[0]?.bones ?? [];
+      let result = '';
+
+      bones.forEach(bone => {
+        const name = bone.name || "UNKNOWN";
+        const cubes = bone.cubes || [];
+
+        cubes.forEach(cube => {
+          const [x, y, z] = cube.origin;
+          const [sx, sy, sz] = cube.size;
+          const [uvx, uvy] = cube.uv;
+
+          // result += `${name}:${part} ${x} ${y - 1} ${z} ${sx} ${sy} ${sz} ${uvx} ${uvy}\n`;
+          result += `BOX:${part} ${x} ${y - 1} ${z} ${sx} ${sy} ${sz} ${uvx} ${uvy}\n`;
+        });
+      });
+
+      return result.trim();
+    }
+
+    document.getElementById('jsonFileInput').addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          currentJson = JSON.parse(e.target.result);
+          updateOutput();
+        } catch (err) {
+          document.getElementById('output').textContent = "エラー: JSONファイルの読み込みに失敗しました。";
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    function updateOutput() {
+      if (!currentJson) return;
+      const part = document.getElementById("partSelect").value;
+      currentOutput = convertJsonToText(currentJson, part);
+      document.getElementById('output').textContent = currentOutput || "変換できるデータが見つかりませんでした。";
+    }
+
+    document.getElementById('partSelect').addEventListener('change', updateOutput);
+
+    document.getElementById('copyButton').addEventListener('click', function() {
+      if (!currentOutput) return alert("コピーするデータがありません。");
+      navigator.clipboard.writeText(currentOutput).then(() => {
+        alert("クリップボードにコピーしました！");
+      }).catch(err => {
+        alert("コピーに失敗しました。");
+      });
+    });
+
+    // CSMスキン追加スクリプト
+    let imageFile;
+    const fileInput = document.getElementById("fileInput");
+    const textbox1 = document.getElementById("textbox1");
+    const textbox6 = document.getElementById("textbox6");
+    const textbox3 = document.getElementById("textbox3");
+
+    fileInput.addEventListener("change", (e) => {
+      imageFile = e.target.files[0];
+      if (imageFile && imageFile.name.endsWith(".png")) {
+        const randomId = Math.floor(Math.random() * 1e8).toString().padStart(8, '0');
+        textbox6.value = randomId;
+      } else {
+        alert("スキンを選択してください。");
+        fileInput.value = "";
+      }
+    });
+
+    async function pasteClipboard(id) {
+      try {
+        const text = await navigator.clipboard.readText();
+        document.getElementById(id).value = text;
+      } catch (err) {
+        alert("読み取りに失敗しました。\n" + err);
+      }
+    }
+
+    function generateZip() {
+      if (!imageFile) return alert("スキンを選択してください。");
+
+      const zip = new JSZip();
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        const imgData = e.target.result;
+        const skinId = textbox6.value;
+
+        const textContent = `DISPLAYNAME:${textbox1.value}
+DISPLAYNAMEID:IDS_dlcskin${skinId}_DISPLAYNAME
+${textbox3.value}
+OFFSET:HEAD Y 0
+OFFSET:BODY Y 0
+OFFSET:ARM0 Y 0
+OFFSET:ARM1 Y 0
+OFFSET:LEG0 Y 0
+OFFSET:LEG1 Y 0
+OFFSET:HELMET Y 0
+OFFSET:TOOL0 Y 0
+OFFSET:TOOL1 Y 0
+OFFSET:PANTS0 Y 0
+OFFSET:PANTS1 Y 0
+OFFSET:BOOTS0 Y 0
+OFFSET:BOOTS1 Y 0
+ANIM:0x7ff5fc10
+GAME_FLAGS:0x18
+FREE:1`;
+
+        zip.file(`dlcskin${skinId}.png`, imgData.split(",")[1], { base64: true });
+        zip.file(`dlcskin${skinId}.png.txt`, textContent);
+
+        zip.generateAsync({ type: "blob" }).then(function(content) {
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(content);
+          link.download = `dlcskin${skinId}.zip`;
+          link.click();
+        });
+      };
+      reader.readAsDataURL(imageFile);
+    }
+  </script>
+</body>
+</html>
