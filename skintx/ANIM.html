@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スキン設定 ANIM</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #fff5e1;
+            color: #333;
+            text-align: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #ff8800;
+            font-size: 24px;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: inline-block;
+            max-width: 400px;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        label {
+            background: #ffcc80;
+            padding: 8px 12px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: inline-block;
+            transition: 0.3s;
+        }
+        label:hover {
+            background: #ff9900;
+        }
+        input[type="checkbox"], input[type="radio"] {
+            display: none;
+        }
+        input[type="checkbox"]:checked + label {
+            background: #ff7700;
+            color: white;
+        }
+        .output-box {
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #ff5500;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>スキン設定 ANIM</h1>
+    <div class="container">
+        <div class="checkbox-group">
+            <input type="radio" id="steve" name="character" class="calc-checkbox" value="40000">
+            <label for="steve">スティーブ</label>
+
+            <input type="radio" id="alex" name="character" class="calc-checkbox" value="80000">
+            <label for="alex">アレックス</label>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="arm_fix" class="calc-checkbox" value="1">
+            <label for="arm_fix">腕固定</label>
+
+            <input type="checkbox" id="leg_fix" class="calc-checkbox" value="4">
+            <label for="leg_fix">足固定</label>
+
+            <input type="checkbox" id="arm_zombie" class="calc-checkbox" value="2">
+            <label for="arm_zombie">腕ゾンビ</label>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="both_arms" class="calc-checkbox" value="40">
+            <label for="both_arms">両腕同じ動き</label>
+
+            <input type="checkbox" id="both_legs" class="calc-checkbox" value="20">
+            <label for="both_legs">両足同じ動き</label>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="glide" class="calc-checkbox" value="80">
+            <label for="glide">グライド</label>
+
+            <input type="checkbox" id="invisible_armor" class="calc-checkbox" value="100">
+            <label for="invisible_armor">防具見えない</label>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="head_vanish" class="calc-checkbox" value="400">
+            <label for="head_vanish">頭消える</label>
+
+            <input type="checkbox" id="body_vanish" class="calc-checkbox" value="2000">
+            <label for="body_vanish">体消える</label>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="right_hand_vanish" class="calc-checkbox" value="800">
+            <label for="right_hand_vanish">右手消える</label>
+
+            <input type="checkbox" id="left_hand_vanish" class="calc-checkbox" value="1000">
+            <label for="left_hand_vanish">左手消える</label>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="right_leg_vanish" class="calc-checkbox" value="4000">
+            <label for="right_leg_vanish">右足消える</label>
+
+            <input type="checkbox" id="left_leg_vanish" class="calc-checkbox" value="8000">
+            <label for="left_leg_vanish">左足消える</label>
+        </div>
+
+        <div class="checkbox-group">
+            <input type="checkbox" id="bend_waist" class="calc-checkbox" value="60000">
+            <label for="bend_waist">腰曲がる</label>
+
+            <input type="checkbox" id="upside_down" class="calc-checkbox" value="80000000">
+            <label for="upside_down">逆さま</label>
+        </div>
+
+        <div class="output-box">
+            合計: <span id="total-hex">0</span>
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll('.calc-checkbox').forEach(cb => {
+            cb.addEventListener('change', () => {
+                let sum = 0;
+                document.querySelectorAll('.calc-checkbox:checked').forEach(checked => {
+                    sum += parseInt(checked.value, 16);
+                });
+
+                document.getElementById('total-hex').textContent = sum.toString(16).toUpperCase();
+            });
+        });
+    </script>
+
+</body>
+</html>
