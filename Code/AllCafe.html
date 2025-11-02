@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>コード変換ツール</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      background: #f4f6fc;
+    }
+    textarea {
+      width: 100%;
+      height: 200px;
+      padding: 10px;
+      font-family: monospace;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 10px 20px;
+      background: #4a80f0;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .output-container {
+      display: flex;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .column {
+      flex: 1;
+    }
+    h2, h3 {
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>コード変換ツール</h2>
+
+  <textarea id="input" placeholder="例: 41010000 1058FA54 00000000..."></textarea><br>
+  <button onclick="pasteFromClipboard()">📋 貼り付け</button>
+  <button onclick="convert()">🔁 変換する</button>
+
+  <div class="output-container">
+    <div class="column">
+      <h3>全出力</h3>
+      <textarea id="output" placeholder="すべての変換結果が表示されます"></textarea><br>
+      <button onclick="copyToClipboard('output')">📤 コピー</button>
+    </div>
+    <div class="column">
+      <h3>00000000 を除いた出力</h3>
+      <textarea id="filteredOutput" placeholder="00000000 を含む行はここでは省かれます"></textarea><br>
+      <button onclick="copyToClipboard('filteredOutput')">📤 コピー</button>
+    </div>
+  </div>
+
+  <script>
+    function pasteFromClipboard() {
+      navigator.clipboard.readText().then(text => {
+        document.getElementById('input').value = text;
+      }).catch(err => {
+        alert("クリップボードからの読み取りに失敗しました: " + err);
+      });
+    }
+
+    function copyToClipboard(elementId) {
+      const text = document.getElementById(elementId).value;
+      navigator.clipboard.writeText(text).then(() => {
+        alert("コピーしました！");
+      }).catch(err => {
+        alert("コピーに失敗しました: " + err);
+      });
+    }
+
+    function convert() {
+      const input = document.getElementById('input').value;
+      const lines = input.trim().split(/\n/);
+      const outputLines = [];
+      const filteredLines = [];
+      let address = 0x00120000;
+
+      for (let line of lines) {
+        line = line.trim();
+        if (!line) continue;
+
+        const parts = line.split(/\s+/);
+        const data = parts.slice(1); // 最初のアドレスを無視
+
+        for (let word of data) {
+          const addrHex = address.toString(16).toUpperCase().padStart(8, '0');
+          const formatted = `${addrHex} ${word}`;
+          outputLines.push(formatted);
+          if (word !== "00000000") {
+            filteredLines.push(formatted);
+          }
+          address += 4;
+        }
+      }
+
+      document.getElementById('output').value = outputLines.join('\n');
+      document.getElementById('filteredOutput').value = filteredLines.join('\n');
+    }
+  </script>
+
+</body>
+</html>
