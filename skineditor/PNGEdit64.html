@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>画像とTXT生成ツール（範囲指定＆虹色対応）</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+  <style>
+    canvas {
+      border: 1px solid black;
+      image-rendering: pixelated;
+      cursor: grab;
+    }
+  </style>
+</head>
+<body>
+  <h2>画像とTXT生成ツール（範囲指定＆虹色）</h2>
+
+  <input type="file" id="imageInput" accept="image/png"><br><br>
+
+  <label>ファイル名のベース（textbox1）:</label><br>
+  <input type="text" id="textbox1" placeholder="例: dlcskin10000000"><br><br>
+
+  <label>TXTテンプレート（textbox2）:</label><br>
+  <textarea id="textbox2" rows="6" cols="40" placeholder="複数行テキストを入力"></textarea><br><br>
+
+  <canvas id="imageCanvas" width="64" height="64"></canvas><br>
+  <span>ドラッグで範囲指定（クリック開始 → 離す）</span><br>
+  <span id="rangeInfo"></span><br><br>
+
+  <button onclick="processImage()">生成してダウンロード</button>
+
+  <script>
+    let startX = 0, startY = 0, width = 4, height = 2;
+    let canvas = document.getElementById("imageCanvas");
+    let ctx = canvas.getContext("2d");
+    let imgData;
+    let selecting = false;
+    let rectStartX = 0, rectStartY = 0;
+    let scale = 8, originX = 0, originY = 0;
+    let isPanning = false, panStartX = 0, panStartY = 0;
+    let selectedRects = [];
+
+    function drawImageWithTransform() {
+      ctx.setTransform(scale, 0, 0, scale, originX, originY);
+      ctx.clearRect(-originX / scale, -originY / scale, canvas.width / scale, canvas.height / scale);
+      if (imgData) ctx.drawImage(imgData, 0, 0);
+      ctx.strokeStyle = 'red';
+      ctx.lineWidth = 1 / scale;
+      selectedRects.forEach(r => ctx.strokeRect(r.x, r.y, r.w, r.h));
+    }
+
+    document.getElementById("imageInput").addEventListener("change", function() {
+      const file = this.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      const img = new Image();
+
+      reader.onload = function(e) {
+        img.onload = function() {
+          if (img.width !== 64 || img.height !== 64) {
+            alert("画像サイズは64x64でなければなりません");
+            return;
+          }
+          imgData = img;
+          drawImageWithTransform();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    canvas.addEventListener("mousedown", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      if (e.ctrlKey) {
+        isPanning = true;
+        panStartX = x;
+        panStartY = y;
+        canvas.style.cursor = 'grabbing';
+      } else {
+        rectStartX = Math.floor((x - originX) / scale);
+        rectStartY = Math.floor((y - originY) / scale);
+        selecting = true;
+      }
+    });
+
+    canvas.addEventListener("mouseup", (e) => {
+      isPanning = false;
+      canvas.style.cursor = 'grab';
+      if (!selecting) return;
+      const rect = canvas.getBoundingClientRect();
+      const endX = Math.floor((e.clientX - rect.left - originX) / scale);
+      const endY = Math.floor((e.clientY - rect.top - originY) / scale);
+      const selX = Math.min(rectStartX, endX);
+      const selY = Math.min(rectStartY, endY);
+      const selW = Math.abs(endX - rectStartX) + 1;
+      const selH = Math.abs(endY - rectStartY) + 1;
+
+      if (e.shiftKey) {
+        selectedRects.push({ x: selX, y: selY, w: selW, h: selH });
+      } else {
+        selectedRects = [{ x: selX, y: selY, w: selW, h: selH }];
+      }
+
+      startX = selX;
+      startY = selY;
+      width = selW;
+      height = selH;
+
+      document.getElementById("rangeInfo").innerText = `選択範囲: X=${selX}, Y=${selY}, 幅=${selW}, 高さ=${selH}`;
+      drawImageWithTransform();
+      selecting = false;
+    });
+
+    canvas.addEventListener("mousemove", (e) => {
+      if (isPanning) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        originX += x - panStartX;
+        originY += y - panStartY;
+        panStartX = x;
+        panStartY = y;
+        drawImageWithTransform();
+      }
+    });
+
+    canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 1.1 : 0.9;
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const x = (mouseX - originX) / scale;
+      const y = (mouseY - originY) / scale;
+
+      scale *= delta;
+      originX = mouseX - x * scale;
+      originY = mouseY - y * scale;
+      drawImageWithTransform();
+    });
+
+    function hsvToRgb(h, s, v) {
+      let c = v * s;
+      let x = c * (1 - Math.abs((h / 60) % 2 - 1));
+      let m = v - c;
+      let r = 0, g = 0, b = 0;
+
+      if (h < 60) [r, g, b] = [c, x, 0];
+      else if (h < 120) [r, g, b] = [x, c, 0];
+      else if (h < 180) [r, g, b] = [0, c, x];
+      else if (h < 240) [r, g, b] = [0, x, c];
+      else if (h < 300) [r, g, b] = [x, 0, c];
+      else [r, g, b] = [c, 0, x];
+
+      return {
+        r: Math.round((r + m) * 255),
+        g: Math.round((g + m) * 255),
+        b: Math.round((b + m) * 255)
+      };
+    }
+
+    function padNumber(num, length) {
+      return num.toString().padStart(length, '0');
+    }
+
+    function getBaseNameAndNumber(name) {
+      const match = name.match(/^(.*?)(\d+)$/);
+      if (match) {
+        return [match[1], parseInt(match[2], 10)];
+      } else {
+        return [name, 1];
+      }
+    }
+
+    async function processImage() {
+      if (!imgData) return alert("画像が読み込まれていません");
+
+      const baseName = document.getElementById("textbox1").value.trim();
+      const textContent = document.getElementById("textbox2").value.trim();
+      if (!baseName || !textContent) return alert("textbox1とtextbox2を入力してください");
+      if (/[^a-zA-Z0-9]/.test(baseName)) return alert("textbox1には半角英数字のみ使用できます。");
+
+      const [nameBase, startNum] = getBaseNameAndNumber(baseName);
+
+      const zip = new JSZip();
+
+      for (let i = 0; i < 256; i++) {
+        const canvas = document.createElement("canvas");
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext("2d");
+
+        ctx.drawImage(imgData, 0, 0);
+
+        const hue = (i / 256) * 360;
+        const rgb = hsvToRgb(hue, 1, 1);
+        ctx.fillStyle = `rgb(${rgb.r},${rgb.g},${rgb.b})`;
+
+        selectedRects.forEach(rect => {
+          for (let y = 0; y < rect.h; y++) {
+            for (let x = 0; x < rect.w; x++) {
+              ctx.fillRect(rect.x + x, rect.y + y, 1, 1);
+            }
+          }
+        });
+
+        const numStr = padNumber(startNum + i, 3);
+        const fileName = `${nameBase}${numStr}.png`;
+        const dataURL = canvas.toDataURL("image/png");
+        zip.file(fileName, dataURL.split(',')[1], { base64: true });
+
+        const lines = textContent.split("\n");
+        if (lines.length >= 2) {
+          lines[1] = lines[1].replace(/(\D*)(\d+)/, (match, prefix, num) => {
+            return `${prefix}${parseInt(num) + 1}`; // ← 修正点（常に+1）
+          });
+        }
+        for (let j = 0; j < lines.length; j++) {
+          lines[j] = lines[j].replace(/(DISPLAYNAMEID\D*)(\d+)/, (match, p, n) => `${p}${parseInt(n) + i}`);
+        }
+
+        zip.file(`${fileName}.txt`, lines.join("\n"));
+      }
+
+      zip.generateAsync({ type: "blob" }).then(function(content) {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(content);
+        link.download = "generated_images.zip";
+        link.click();
+      });
+    }
+  </script>
+</body>
+</html>
