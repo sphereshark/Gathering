@@ -2,107 +2,77 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<title>コード変換・整列・重複整理ツール</title>
+<title>CafeToNomalize</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
-body {
-  background: #0f1724;
-  color: #e6eef6;
-  font-family: Consolas, monospace;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 30px;
-}
-textarea, input {
-  border: none;
-  border-radius: 8px;
-  background: #1a263d;
-  color: #e6eef6;
-  font-size: 14px;
-  padding: 8px;
-  font-family: Consolas, monospace;
-}
-textarea { resize: vertical; height: 180px; width: 360px; }
-button {
-  background: #263b60; color: white; border: none;
-  border-radius: 6px; padding: 6px 14px; cursor: pointer;
-}
-button:hover { background: #34527a; }
-label { font-size: 13px; color: #9aa4b2; display: block; margin-top: 10px; }
-.section {
-  display: flex;
-  flex-direction: row;
-  gap: 20px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-.outputBox {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: #16243a;
-  padding: 10px;
-  border-radius: 8px;
-}
-.outputHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 360px;
-  margin-bottom: 4px;
-}
-.count {
-  font-size: 12px;
-  color: #9aa4b2;
-}
+  :root{--bg:#071022;--panel:#0b1220;--muted:#9aa4b2;--card:#0e2438}
+  body{background:linear-gradient(180deg,#04101b,#071022);color:#e6eef6;font-family:ui-monospace,Consolas,monospace;padding:20px;margin:0}
+  h1{font-size:18px;color:#64ffda;margin:0 0 8px}
+  .wrap{max-width:1100px;margin:0 auto}
+  textarea, input {font-family:inherit;font-size:13px;line-height:1.35;border:0;border-radius:8px;padding:10px;background:#071826;color:#e6eef6}
+  textarea {resize:vertical}
+  .controls{display:flex;gap:8px;align-items:center;margin:10px 0}
+  button{background:#18324d;border:0;color:#e6eef6;padding:8px 12px;border-radius:8px;cursor:pointer}
+  button:hover{filter:brightness(1.08)}
+  .section{display:flex;gap:16px;flex-wrap:wrap}
+  .box{background:var(--card);padding:10px;border-radius:10px;width:360px;display:flex;flex-direction:column;align-items:stretch}
+  .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .count{color:var(--muted);font-size:12px;margin-right:8px}
+  label{color:var(--muted);font-size:13px;display:block;margin-bottom:6px}
+  .note{color:var(--muted);font-size:12px;margin-top:8px}
+  @media(max-width:1100px){ .box{width:32vw; min-width:300px} }
+  @media(max-width:760px){ .section{flex-direction:column;align-items:stretch} .box{width:100%} }
 </style>
 </head>
 <body>
-  <h2>CafeCode Normalize</h2>
-
-  <label>入力テキスト</label>
-  <textarea id="input" placeholder="変換したいコードを貼り付け"></textarea>
-  <div>
-    <button id="pasteBtn">貼り付け</button>
-    <button id="convertBtn">変換実行</button>
-  </div>
-
-  <!-- 展開のみ -->
-  <div class="section">
-    <div class="outputBox">
-      <div class="outputHeader">
-        <strong>直接変換</strong>
-        <div>
-          <span id="count1" class="count">0行</span>
-          <button id="copy1">コピー</button>
-        </div>
+  <div class="wrap">
+    <h1>Cafe正規化</h1>
+    <div>
+      <label>入力テキスト</label>
+      <textarea id="input" rows="8" placeholder=""></textarea>
+      <div class="controls">
+        <button id="pasteBtn">貼り付け</button>
+        <button id="convertBtn">変換実行</button>
+        <button id="clearBtn">クリア</button>
       </div>
-      <textarea id="output1" readonly></textarea>
+      <!-- <div class="note">
+        ルール: 左が <code>0110</code> で始まる行がトリガー → 右を Y として base = <code>0x00120000 + Y</code>、次行から左→右を順に4バイトずつ配置。右が <code>000000FF</code> の行は左だけ配置して終了。複数ブロック対応。
+      </div> -->
     </div>
 
-    <!-- 展開＋整列＋重複削除 -->
-    <div class="outputBox">
-      <div class="outputHeader">
-        <strong>整列</strong>
-        <div>
-          <span id="count2" class="count">0行</span>
-          <button id="copy2">コピー</button>
+    <div class="section" style="margin-top:16px">
+      <div class="box">
+        <div class="header">
+          <strong>直接変換</strong>
+          <div>
+            <span id="count1" class="count">0行</span>
+            <button id="copy1">コピー</button>
+          </div>
         </div>
+        <textarea id="output1" rows="14" readonly></textarea>
       </div>
-      <textarea id="output2" readonly></textarea>
-    </div>
 
-    <!-- 右側が全0行を削除 -->
-    <div class="outputBox">
-      <div class="outputHeader">
-        <strong>余分削除</strong>
-        <div>
-          <span id="count3" class="count">0行</span>
-          <button id="copy3">コピー</button>
+      <div class="box">
+        <div class="header">
+          <strong>+整理</strong>
+          <div>
+            <span id="count2" class="count">0行</span>
+            <button id="copy2">コピー</button>
+          </div>
         </div>
+        <textarea id="output2" rows="14" readonly></textarea>
       </div>
-      <textarea id="output3" readonly></textarea>
+
+      <div class="box">
+        <div class="header">
+          <strong>+短縮化</strong>
+          <div>
+            <span id="count3" class="count">0行</span>
+            <button id="copy3">コピー</button>
+          </div>
+        </div>
+        <textarea id="output3" rows="14" readonly></textarea>
+      </div>
     </div>
   </div>
 
@@ -115,16 +85,15 @@ const count1 = document.getElementById('count1');
 const count2 = document.getElementById('count2');
 const count3 = document.getElementById('count3');
 
-// 貼り付け
 document.getElementById('pasteBtn').addEventListener('click', async () => {
-  try {
-    inputEl.value = await navigator.clipboard.readText();
-  } catch {
-    alert('クリップボードの読み取りに失敗しました。');
-  }
+  try { inputEl.value = await navigator.clipboard.readText(); }
+  catch { alert('クリップボードの読み取りに失敗しました。'); }
+});
+document.getElementById('clearBtn').addEventListener('click', () => {
+  inputEl.value=''; out1.value=''; out2.value=''; out3.value='';
+  count1.textContent='0行'; count2.textContent='0行'; count3.textContent='0行';
 });
 
-// 展開関数
 function expandOnly(lines) {
   const result = [];
   let expanding = false;
@@ -132,82 +101,90 @@ function expandOnly(lines) {
   let offset = 0;
 
   for (let i = 0; i < lines.length; i++) {
-    const parts = lines[i].trim().split(/\s+/);
+    const raw = lines[i].trim();
+    if (!raw) continue;
+    const parts = raw.split(/\s+/).filter(Boolean);
     if (parts.length < 2) continue;
-
     const left = parts[0].toUpperCase();
     const right = parts[1].toUpperCase();
 
-    if (!expanding && !left.startsWith("0012")) {
-      const YYYYYYYY = parseInt(right, 16);
-      baseAddr = 0x00120000 + YYYYYYYY;
+    if (!expanding && left.startsWith('0110')) {
+      const Y = parseInt(right, 16) || 0;
+      baseAddr = 0x00120000 + Y;
       offset = 0;
       expanding = true;
       continue;
     }
 
     if (expanding) {
-      const addr = (baseAddr + offset).toString(16).toUpperCase().padStart(8, '0');
-      result.push(`${addr} ${left}`);
+      const addr1 = baseAddr + offset;
+      result.push(hex8(addr1) + ' ' + left);
       offset += 4;
-      if (right === "000000FF") expanding = false;
+
+      if (right === '000000FF') {
+        expanding = false;
+        continue; // skip writing right side
+      }
+
+      const addr2 = baseAddr + offset;
+      result.push(hex8(addr2) + ' ' + right);
+      offset += 4;
       continue;
     }
 
-    result.push(`${left} ${right}`);
+    result.push(left + ' ' + right);
   }
-
   return result;
 }
 
-// 変換処理
-document.getElementById('convertBtn').addEventListener('click', () => {
-  const lines = inputEl.value.trim().split(/\r?\n/).filter(l => l.trim());
+function hex8(n){return (n>>>0).toString(16).toUpperCase().padStart(8,'0');}
 
-  // ① 展開のみ
-  const expanded = expandOnly(lines);
-  out1.value = expanded.join('\n');
-  count1.textContent = expanded.length + '行';
-
-  // ② 展開＋整列＋重複削除
-  const sorted = [...expanded].sort((a, b) => {
-    const addrA = parseInt(a.split(/\s+/)[0], 16);
-    const addrB = parseInt(b.split(/\s+/)[0], 16);
-    return addrA - addrB;
-  });
-  const uniqueMap = {};
-  for (const line of sorted) {
-    const [addr, val] = line.split(/\s+/);
-    uniqueMap[addr] = val;
+function sortAndDedup(lines){
+  const map={};
+  for(const line of lines){
+    const parts=line.trim().split(/\s+/);
+    if(parts.length<2)continue;
+    map[parts[0].toUpperCase()]=parts[1].toUpperCase();
   }
-  const deduped = Object.keys(uniqueMap)
-    .sort((a, b) => parseInt(a, 16) - parseInt(b, 16))
-    .map(addr => `${addr} ${uniqueMap[addr]}`);
-  out2.value = deduped.join('\n');
-  count2.textContent = deduped.length + '行';
+  return Object.keys(map)
+    .sort((a,b)=>parseInt(a,16)-parseInt(b,16))
+    .map(a=>`${a} ${map[a]}`);
+}
 
-  // ③ 右側が全0行を削除
-  const filtered = deduped.filter(line => {
-    const val = line.split(/\s+/)[1];
-    return val !== '00000000';
+document.getElementById('convertBtn').addEventListener('click',()=>{
+  const rawLines=inputEl.value.split(/\r?\n/);
+  const expanded=expandOnly(rawLines);
+  out1.value=expanded.join('\n');
+  count1.textContent=expanded.length+'行';
+
+  const deduped=sortAndDedup(expanded);
+  out2.value=deduped.join('\n');
+  count2.textContent=deduped.length+'行';
+
+  const filtered=deduped.filter(l=>{
+    const v=(l.split(/\s+/)[1]||'').toUpperCase();
+    return v!=='00000000';
   });
-  out3.value = filtered.join('\n');
-  count3.textContent = filtered.length + '行';
+  out3.value=filtered.join('\n');
+  count3.textContent=filtered.length+'行';
 });
 
-// 個別コピー
-for (let i = 1; i <= 3; i++) {
-  document.getElementById(`copy${i}`).addEventListener('click', async () => {
-    const text = document.getElementById(`output${i}`).value;
-    if (!text) return;
-    try {
-      await navigator.clipboard.writeText(text);
-      alert(`出力${i}をコピーしました。`);
-    } catch {
-      alert('コピーに失敗しました。');
-    }
-  });
+async function copyText(txt){
+  try{await navigator.clipboard.writeText(txt);return true;}
+  catch{return false;}
 }
+document.getElementById('copy1').addEventListener('click',async()=>{
+  if(!out1.value)return alert('出力①が空です。');
+  if(await copyText(out1.value))alert('出力①をコピーしました。');
+});
+document.getElementById('copy2').addEventListener('click',async()=>{
+  if(!out2.value)return alert('出力②が空です。');
+  if(await copyText(out2.value))alert('出力②をコピーしました。');
+});
+document.getElementById('copy3').addEventListener('click',async()=>{
+  if(!out3.value)return alert('出力③が空です。');
+  if(await copyText(out3.value))alert('出力③をコピーしました。');
+});
 </script>
 </body>
 </html>
