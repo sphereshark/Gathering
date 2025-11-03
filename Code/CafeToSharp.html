@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>CafeToKernel</title>
+<style>
+body {
+  background: #0f1724; color: #e6eef6;
+  font-family: Consolas, monospace;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 10px; padding: 30px;
+}
+textarea, input {
+  width: 420px; border: none; border-radius: 8px;
+  background: #1a263d; color: #e6eef6;
+  font-size: 14px; padding: 8px;
+  font-family: Consolas, monospace;
+}
+textarea { height: 120px; resize: vertical; }
+button {
+  background: #263b60; color: white; border: none;
+  border-radius: 6px; padding: 8px 16px; cursor: pointer;
+}
+button:hover { background: #34527a; }
+label { font-size: 13px; color: #9aa4b2; display: block; margin-top: 10px; }
+</style>
+</head>
+<body>
+  <h2>アドレス加算変換ツール</h2>
+
+  <label>設定アドレス</label>
+  <input type="text" id="base" placeholder="例: 11000000">
+
+  <label>メインコード</label>
+  <textarea id="input" placeholder="例: 0012XXXX YYYYYYYY"></textarea>
+  <div>
+    <button id="pasteBtn">貼り付け</button>
+    <button id="convertBtn">変換</button>
+  </div>
+
+  <label>変換結果</label>
+  <textarea id="output" readonly></textarea>
+  <button id="copyBtn">コピー</button>
+
+<script>
+const baseEl = document.getElementById('base');
+const inputEl = document.getElementById('input');
+const outputEl = document.getElementById('output');
+
+// クリップボード貼り付け
+document.getElementById('pasteBtn').addEventListener('click', async () => {
+  try {
+    const text = await navigator.clipboard.readText();
+    inputEl.value = text;
+  } catch {
+    alert('クリップボードの読み取りに失敗しました。');
+  }
+});
+
+// 変換
+document.getElementById('convertBtn').addEventListener('click', () => {
+  const baseHex = baseEl.value.trim().toUpperCase();
+  if (!/^[0-9A-F]{8}$/.test(baseHex)) {
+    alert('Textbox1 は8桁の16進数で入力してください。');
+    return;
+  }
+
+  const base = parseInt(baseHex, 16);
+  const lines = inputEl.value.trim().split(/\r?\n/);
+
+  const result = lines.map(line => {
+    const parts = line.trim().split(/\s+/);
+    if (parts.length < 2) return line;
+    const [addr, val] = parts;
+
+    if (!/^[0-9A-F]{8}$/i.test(addr)) return line;
+
+    // 基準アドレス (0012xxxx) の差分を足す
+    const diff = parseInt(addr, 16) - 0x00120000;
+    const newAddr = (base + diff) >>> 0; // unsigned
+    return `${newAddr.toString(16).toUpperCase().padStart(8, '0')} ${val.toUpperCase()}`;
+  }).join('\n');
+
+  outputEl.value = result;
+});
+
+// コピー
+document.getElementById('copyBtn').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(outputEl.value);
+  } catch {
+    alert('コピーに失敗しました。');
+  }
+});
+</script>
+</body>
+</html>
