@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>アドレス抽出</title>
+<style>
+  body {
+    font-family: "Segoe UI", "Meiryo", sans-serif;
+    background: #fff0f6;
+    color: #444;
+    margin: 0;
+    padding: 40px;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #ff66a3;
+  }
+  .container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  textarea {
+    width: 100%;
+    height: 150px;
+    padding: 10px;
+    border-radius: 12px;
+    border: 2px solid #ffc2dc;
+    font-family: monospace;
+    resize: vertical;
+    background: #fff;
+    transition: 0.2s;
+  }
+  textarea:focus {
+    outline: none;
+    border-color: #ff7fbf;
+    box-shadow: 0 0 6px rgba(255, 105, 180, 0.4);
+  }
+  .small {
+    height: 40px;
+  }
+  button {
+    background: linear-gradient(135deg, #ff9fca, #ff66a3);
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.2s;
+  }
+  button:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    gap: 30px;
+  }
+  .half {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .button-row {
+    display: flex;
+    gap: 10px;
+  }
+  label {
+    color: #ff4f8b;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<h1>アドレス抽出</h1>
+<div class="container">
+  <label>アドレス（8桁）</label>
+  <textarea id="textbox1" class="small" maxlength="8" placeholder="例: 1058FA54" oninput="validateHex(this)"></textarea>
+
+  <label>元コード</label>
+  <textarea id="textbox2" placeholder="ここに貼り付け"></textarea>
+  <div class="button-row">
+    <button onclick="pasteClipboard()">貼り付け</button>
+    <button onclick="convert()">変換</button>
+  </div>
+
+  <div class="row">
+    <div class="half">
+      <label>変換後コード</label>
+      <textarea id="textbox4" readonly></textarea>
+      <button onclick="copyText('textbox4')">コピー</button>
+    </div>
+    <div class="half">
+      <label>抽出結果</label>
+      <textarea id="textbox3" readonly></textarea>
+      <button onclick="copyText('textbox3')">コピー</button>
+    </div>
+  </div>
+</div>
+
+<script>
+async function pasteClipboard() {
+  try {
+    const text = await navigator.clipboard.readText();
+    document.getElementById('textbox2').value = text;
+  } catch {
+    alert("クリップボードの読み取りが許可されていません。");
+  }
+}
+
+function convert() {
+  const target = document.getElementById('textbox1').value.trim().toUpperCase();
+  const input = document.getElementById('textbox2').value.trim();
+  if (!target || !input) return;
+
+  const lines = input.split(/\r?\n/).map(l => l.trim()).filter(l => l);
+
+  const match = [];
+  const others = [];
+
+  for (const line of lines) {
+    const parts = line.split(/\s+/);
+    const right = parts[parts.length - 1].toUpperCase();
+    if (right === target) {
+      match.push(line);
+    } else {
+      others.push(line);
+    }
+  }
+
+  document.getElementById('textbox3').value = match.join("\n");
+  document.getElementById('textbox4').value = others.join("\n");
+}
+
+function copyText(id) {
+  const text = document.getElementById(id);
+  navigator.clipboard.writeText(text.value);
+}
+
+function validateHex(el) {
+  el.value = el.value
+    .toUpperCase()
+    .replace(/[^0-9A-F]/g, '')   // 16進数以外削除
+    .slice(0, 8);                // 最大8文字
+}
+</script>
+
+</body>
+</html>
