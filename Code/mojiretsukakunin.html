@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<title>コード解析ツール</title>
+<style>
+  body { font-family: sans-serif; padding: 20px; }
+  textarea { width: 100%; height: 200px; font-family: monospace; }
+  #results { margin-top: 20px; white-space: pre-wrap; }
+  .result-item { padding: 6px; border-bottom: 1px solid #ccc; }
+  .line-num { font-weight: bold; color: #336; }
+  .found-text { color: #060; }
+</style>
+</head>
+<body>
+<h2>コード解析ツール</h2>
+<button id="pasteBtn">貼り付け</button>
+<br><br>
+<textarea id="codeBox" placeholder="ここにコードを貼り付け"></textarea>
+
+<div id="results"></div>
+
+<script>
+// 貼り付けボタン
+const pasteBtn = document.getElementById('pasteBtn');
+pasteBtn.addEventListener('click', async () => {
+  const text = await navigator.clipboard.readText();
+  document.getElementById('codeBox').value = text;
+  analyze();
+});
+
+// 自動解析
+const codeBox = document.getElementById('codeBox');
+codeBox.addEventListener('input', analyze);
+
+function analyze() {
+  const code = codeBox.value;
+  const lines = code.split(/\n/);
+
+  // 全行の16進を結合（空白削除）
+  const hexList = lines.map(l => l.replace(/[^0-9A-Fa-f]/g, '') );
+  const fullHex = hexList.join('');
+
+  const start = '4800';
+  const end = '0000';
+  let results = [];
+
+  let searchIndex = 0;
+  while (true) {
+    const s = fullHex.indexOf(start, searchIndex);
+    if (s === -1) break;
+    const e = fullHex.indexOf(end, s + start.length);
+    if (e === -1) break;
+
+    const contentHex = fullHex.substring(s + start.length, e);
+
+    // 文字列に変換（UTF-16BE）
+    let out = '';
+    for (let i = 0; i < contentHex.length; i += 4) {
+      const block = contentHex.substring(i, i + 4);
+      if (block.length < 4) break;
+      const codePoint = parseInt(block, 16);
+      out += String.fromCharCode(codePoint);
+    }
+
+    // 元の何行目〜何行目に該当したか調べる
+    let bytePosStart = s / 2; // バイト位置
+    let bytePosEnd = e / 2;
+
+    let acc = 0;
+    let startLine = 1;
+    let endLine = 1;
+    for (let i = 0; i < hexList.length; i++) {
+      const byteLen = hexList[i].length / 2;
+      if (acc <= bytePosStart && bytePosStart < acc + byteLen) startLine = i + 1;
+      if (acc <= bytePosEnd && bytePosEnd < acc + byteLen) endLine = i + 1;
+      acc += byteLen;
+    }
+
+    results.push({ startLine, endLine, text: out });
+    searchIndex = e + end.length;
+  }
+
+  const resultBox = document.getElementById('results');
+  if (results.length === 0) {
+    resultBox.innerHTML = '検出なし';
+    return;
+  }
+
+  let html = '';
+  for (const r of results) {
+    html += `<div class="result-item">` +
+            `<span class="line-num">${r.startLine}行目:</span> ` +
+            `<span class="found-text">${r.text}</span>` +
+            `</div>`;
+  }
+
+  resultBox.innerHTML = html;
+}
+</script>
+</body>
+</html>
