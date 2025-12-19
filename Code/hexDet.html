@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Hex Converter Tools</title>
+<style>
+    body { background: #ffe6ee; font-family: sans-serif; padding: 20px; color: #222; }
+    h1 { margin-bottom: 20px; }
+    h2 { margin-top: 40px; }
+    .box { background: #ffd6e6; padding: 20px; border-radius: 12px; margin-bottom: 40px; }
+    .input-area { width: 100%; padding: 10px; font-size: 18px; border-radius: 8px; border: 1px solid #aaa; margin-bottom: 10px; }
+    .btn { background: #ff99bb; padding: 8px 14px; border: none; border-radius: 8px; margin-right: 10px; cursor: pointer; color: #fff; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>UTF-16 ⇄ Hexadecimal & Hex Tools</h1>
+
+<!-- ◆◆◆ カテゴリ1：UTF-16 ↔ Hex ◆◆◆ -->
+<div class="box">
+    <h2>カテゴリ1：UTF-16 ⇄ Hexadecimal</h2>
+
+    UTF-16  
+    <input id="utf1" class="input-area">
+
+    <button class="btn" onclick="copyText('utf1')">📋 コピー</button>
+    <button class="btn" onclick="pasteText('utf1')">📥 ペースト</button>
+    <br><br>
+
+    Hexadecimal  
+    <input id="hex1" class="input-area">
+
+    <button class="btn" onclick="copyText('hex1')">📋 コピー</button>
+    <button class="btn" onclick="pasteText('hex1')">📥 ペースト</button>
+</div>
+
+
+<!-- ◆◆◆ カテゴリ2：.long / asm / kernel_write_value ◆◆◆ -->
+<div class="box">
+    <h2>カテゴリ2：Hex → .long / asm / kernel_write_value</h2>
+
+    <label><input type="radio" name="mode" value="long" checked> .long 形式</label><br>
+    <label><input type="radio" name="mode" value="asm"> asm(".long 0xZZZZZZZZ");</label><br>
+    <label><input type="radio" name="mode" value="kernel"> kernel_write_value()</label>
+
+    <br><br>
+
+    入力（Hex）
+    <textarea id="hex2" class="input-area" rows="4"></textarea>
+    <button class="btn" onclick="copyText('hex2')">📋 コピー</button>
+    <button class="btn" onclick="pasteText('hex2')">📥 ペースト</button>
+
+    <br><br>
+
+    変換結果
+    <textarea id="out2" class="input-area" rows="8"></textarea>
+    <button class="btn" onclick="copyText('out2')">📋 コピー</button>
+</div>
+
+
+<script>
+// ===== 共通コピー・ペースト =====
+function copyText(id) {
+    const el = document.getElementById(id);
+    el.select();
+    document.execCommand("copy");
+}
+async function pasteText(id) {
+    const el = document.getElementById(id);
+    const text = await navigator.clipboard.readText();
+    el.value = text;
+    el.dispatchEvent(new Event("input"));
+}
+
+
+// =====================================
+// ◆◆ カテゴリ1：UTF-16 <=> Hex 自動変換 ◆◆
+// =====================================
+document.getElementById("utf1").addEventListener("input", utfToHex);
+document.getElementById("hex1").addEventListener("input", hexToUtf);
+
+function utfToHex() {
+    let text = document.getElementById("utf1").value;
+    let hex = "";
+
+    for (let ch of text) {
+        hex += ch.charCodeAt(0).toString(16).padStart(4, "0");
+    }
+
+    document.getElementById("hex1").value = hex.toUpperCase();
+}
+
+function hexToUtf() {
+    let hex = document.getElementById("hex1").value.replace(/\s+/g, "");
+    let out = "";
+
+    for (let i = 0; i < hex.length; i += 4) {
+        let code = parseInt(hex.substring(i, i + 4), 16);
+        if (!isNaN(code)) out += String.fromCharCode(code);
+    }
+
+    document.getElementById("utf1").value = out;
+}
+
+
+
+// =====================================
+// ◆◆ カテゴリ2：8桁変換 + ラジオボタン ◆◆
+// =====================================
+document.getElementById("hex2").addEventListener("input", convertCategory2);
+document.querySelectorAll("input[name='mode']").forEach(r =>
+    r.addEventListener("change", convertCategory2)
+);
+
+function convertCategory2() {
+    let hex = document.getElementById("hex2").value.replace(/\s+/g, "").toUpperCase();
+    let mode = document.querySelector("input[name='mode']:checked").value;
+    let result = "";
+
+    if (mode === "kernel") {
+        // 16文字 = 8バイト単位で2つの値へ
+        for (let i = 0; i < hex.length; i += 16) {
+            let chunk = hex.substring(i, i + 16).padEnd(16, "0");
+            let left  = chunk.substring(0, 8);
+            let right = chunk.substring(8, 16);
+            result += `kernel_write_value(0x${left}, 0x${right});\n`;
+        }
+    } else {
+        // 8文字 = 4バイト単位
+        for (let i = 0; i < hex.length; i += 8) {
+            let part = hex.substring(i, i + 8).padEnd(8, "0");
+
+            if (mode === "long") {
+                result += `.long 0x${part}\n`;
+            } else if (mode === "asm") {
+                result += `asm(".long 0x${part}");\n`;
+            }
+        }
+    }
+
+    document.getElementById("out2").value = result;
+}
+
+</script>
+
+</body>
+</html>
